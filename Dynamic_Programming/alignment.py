@@ -1,5 +1,6 @@
 import numpy as np
-import itertools
+import json
+from .utils import init_empty_mx, init_global_alignment_mx, init_traceback_mx
 '''
 'simple' realisation of global alignment by DP. fixed substitution score and GAP panelty.
 implemented both forward and traceback algorithms.
@@ -8,38 +9,16 @@ traceback can trace multiple optimal paths.
 
 read='GAGGCGA'
 template='GAGTGA'
-MATCH = 1
-MISMATCH = -1
-GAP = -2
 
-def init_empty_mx(row, column, d_type=int):
-    row_length = len(row)+1
-    col_length = len(column)+1 
-    mx = np.zeros((row_length, col_length), dtype=d_type) #with padding for first rows and columns
-    return mx
-
-def init_traceback_mx(row, column):
-    mx = init_empty_mx(row, column, d_type='U5')
-    mx[0, 1:]='1'
-    mx[1:, 0]='2'
-    mx[0, 0] = '0'
-    return mx    
-
-def init_mx(row, column):
-    mx = init_empty_mx(row, column)
-    mx[:, 0] = init_value(GAP, mx.shape[0])
-    mx[0, :] = init_value(GAP, mx.shape[1])
-    return mx
-    
-def init_value(gap, length):
-    r = np.arange(0, length)
-    return gap*r
 
 def score(mx, row, column, i, j):
     '''
     forward and record for traceback
     '''
-    match_or_mismatch = MATCH if row[i-1]==column[j-1] else MISMATCH
+    with open('Dynamic_Programming/input/substitution_mx.json', 'r') as f:
+        score = json.load(f)
+    match_or_mismatch = score[row[i-1]][column[j-1]]
+    GAP = score['GAP']
     direction_list = ['d', 'v', 'h']#'d': diagnal, 'v': vertiacl, 'h': horizontal
     scores = [mx[i-1, j-1] + match_or_mismatch, mx[i-1, j] + GAP, mx[i, j-1] + GAP]
     direction_index = np.argwhere(scores == np.max(scores)).flatten()
@@ -47,7 +26,7 @@ def score(mx, row, column, i, j):
     return max(scores), direction
 
 def global_align(read, template):
-    forward_mx = init_mx(read, template)
+    forward_mx = init_global_alignment_mx(read, template)
     traceback_mx = init_traceback_mx(read, template)
     for i, R in enumerate(read, 1):
         for j, T in enumerate(template, 1):
@@ -92,10 +71,7 @@ def print_alignment(traceback_mx, read, template):
     return path
    
 
-
-    
 if __name__=='__main__':
     forward, traceback = global_align(read, template)
-    print_alignment(traceback, read, template)
-    print(traceback)
+    print(forward)
 
